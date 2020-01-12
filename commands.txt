@@ -1,0 +1,161 @@
+Incoming:
+
+Login:
+    Request: {
+        operation: 0,
+        sub_operation: 0,
+        name: [name]
+    }
+    Response:  {
+        operation: 0,
+        sub_operation: 0,
+        status: 1/0 (success/fail)
+        
+        # on error:
+        error: komunikat
+    }
+
+Logout:
+    Request: {
+        operation: 0,
+        sub_operation: 1,
+    }
+
+Create game:
+    Request: {
+        operation: 1,
+        sub_operation: 0,
+        name: [name]
+    }
+    Response: {
+        operation: 1,
+        sub_operation: 0,
+        status: 1/0 (success/fail)
+        
+        # on error:
+        error: komunikat
+    }
+
+Join game:
+    Request: {
+        operation: 1,
+        sub_operation: 1,
+        game_id: [id]
+    }
+    Response: {
+        operation: 1,
+        sub_operation: 1,
+        status: 1/0 (success/fail)
+        
+        # on error:
+        error: komunikat
+    }
+
+Leave game:
+    Request: {
+        operation: 1,
+        sub_operation: 2,
+        game_id: [id]
+    }
+    Response: {
+        operation: 1,
+        sub_operation: 2,
+        status: 1/0 (success/fail)
+        
+        # on error:
+        error: komunikat
+    }
+
+Make move:
+    Request: {
+        operation: 2,
+        sub_operation: 0,
+        posX: X,
+        posY: Y
+    }
+    Response: {
+        operation: 2,
+        sub_operation: 0,
+        status: 1/0 (success/fail)
+        
+        # on error:
+        error: komunikat
+    }
+
+Get games list:
+    Request: {
+        operation: 3,
+        sub_operation: 0,
+    }
+    Response: {
+        operation: 3,
+        sub_operation: 0,
+        status: 1/0 (success/fail)
+
+        # on error:
+        error: komunikat
+        
+        # on success:
+        games: games (json)
+    }
+
+Get players list:
+    Request: {
+        operation: 3,
+        sub_operation: 1,
+    }
+    Response: {
+        operation: 3,
+        sub_operation: 1,
+        status: 1/0 (success/fail)
+
+        # on error:
+        error: komunikat
+        
+        # on success:
+        players: players (json)
+    }
+
+
+
+
+
+
+
+
+Outgoing:
+Players list:
+    {
+        operation: 3
+        sub_operation: 1,
+        players: players (json)
+    }
+
+Games list:
+    {
+        operation: 3
+        sub_operation: 0,
+        games: games (json)
+    }
+
+Games error: (np. jak ktos wyjdzie z gry)
+    {
+        operation: 1,
+        sub_operation: 0,
+        error: error
+    }
+
+Games result: (po zakonczeniu)
+    {
+        operation: 1,
+        sub_operation: 0,
+        winner: winner
+    }
+
+Game Board: (po tym jak zawodnik (którykolwiek) wykona ruch)
+    {
+        operation: 2,
+        sub_operation: 1,
+        board: board (array)
+    }
+
