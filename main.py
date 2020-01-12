@@ -17,6 +17,7 @@ def main(args):
     print("Listening on port %s..." % port)
     while True:
         (clientsocket, address) = server_socket.accept()
+        print("Accepted new connection")
         ct = Connection(clientsocket, info_container)
         info_container.add_connection(ct)
         ct.start()

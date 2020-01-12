@@ -24,9 +24,9 @@ print("Creating games table...")
 cursor.execute('''
     CREATE TABLE games (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        player1Id INTEGER NOT NULL,
-        player2Id INTEGER NOT NULL,
-        winnerId INTEGER NOT NULL,
+        player1Id INTEGER NULL,
+        player2Id INTEGER NULL,
+        winnerId INTEGER NULL,
         FOREIGN KEY (player1Id)
             REFERENCES players (id),
         FOREIGN KEY (player2Id)

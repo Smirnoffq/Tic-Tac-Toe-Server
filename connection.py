@@ -73,7 +73,7 @@ class Connection (threading.Thread):
         response["sub_operation"] = message["sub_operation"]
 
         try:
-            if self.player == None:
+            if self.player == None and message["operation"] != 0:
                 raise Exception("User not logged in")
             result = handlers[message["operation"]](message)
         except Exception as e:
@@ -89,15 +89,25 @@ class Connection (threading.Thread):
 
     def handle_login_logout(self, message):
         if message["sub_operation"] == 0:
+            if self.player != None:
+                raise Exception("Already logged in")
             if len(message["name"]) > 0:
                 if self.info_container.find_player_by_name(message["name"]) is not None:
-                    raise Exception("Player already logged in")
+                    raise Exception("Player with this name already logged in")
 
                 self.player = Player(message["name"])
 
                 return "Logged in"
         elif message["sub_operation"] == 1:
-            self.delete_self = True
+            # remove from games
+            game = self.info_container.find_player_game(self.player)
+            if game == None:
+                raise Exception("Player not in game")
+
+            game.remove_player(self.player)
+            self.info_container.remove_game(game)
+
+            self.delete_self = True #exit request loop
         else:
             raise Exception("Wrong sub operation")
 
@@ -123,7 +133,13 @@ class Connection (threading.Thread):
 
             return "Joined"
         elif message["sub_operation"] == 2: # leave game
-            pass
+            game = self.info_container.find_player_game(self.player)
+            if game == None:
+                raise Exception("Player not in game")
+
+            game.remove_player(self.player)
+            self.info_container.remove_game(game)
+
         else:
             raise Exception("Wrong sub operation")
 
@@ -141,8 +157,8 @@ class Connection (threading.Thread):
 
     def handle_lists(self, message):
         if message["sub_operation"] == 0:
-            return self.info_container.get_games()
+            return self.info_container.get_games_info()
         elif message["sub_operation"] == 1:
-            return self.info_container.get_players()
+            return self.info_container.get_players_info()
         else:
             raise Exception("Wrong sub operation")

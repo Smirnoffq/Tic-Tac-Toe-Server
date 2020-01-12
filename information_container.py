@@ -13,7 +13,12 @@ class InformationContainer:
         for game in self.games:
             info = {}
             info["id"] = game.get_id()
-            info["players_count"] = len(game.get_players())
+            info["players_count"] = 0
+
+            for player in game.get_players():
+                if player != None:
+                    info["players_count"] = info["players_count"] + 1
+
             games.append(info)
 
         return games
@@ -42,6 +47,16 @@ class InformationContainer:
         for connection in self.connections:
             tmp_player = connection.get_player()
             if tmp_player is not None:
+                players.append(tmp_player)
+
+        return players
+
+    def get_players_info(self):
+        players = []
+
+        for connection in self.connections:
+            tmp_player = connection.get_player()
+            if tmp_player is not None:
                 info = {}
                 info["name"] = tmp_player.get_name()
                 info["status"] = tmp_player.get_status()
@@ -52,7 +67,7 @@ class InformationContainer:
 
     def find_player_by_name(self, name):
         players = self.get_players()
-
+        
         for player in players:
             if player.get_name() == name:
                 return player
