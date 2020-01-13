@@ -20,7 +20,7 @@ class Connection (threading.Thread):
                 break
 
             try:
-                message = self.receive()
+                message = Messenger.receive(self.socket)
                 message = Messenger.decode_data(message)
                 print("New message: ", message)
             except RuntimeError as re:
@@ -35,31 +35,17 @@ class Connection (threading.Thread):
                 print("Error in encoding data: ", e)
                 continue
 
-            self.send(response_encoded)
+            Messenger.send(response_encoded, self.socket)
             print("Response sent: ", response)
 
         self.__del__() # call destructor
 
     def __del__(self):
         self.info_container.remove_connection(self) # remove from clients list
+        self.send_players_list()
 
-    def receive(self):
-        msg = b''
-        while b';' not in msg and len(msg) < Messenger.MSG_LEN:
-            
-            chunk = self.socket.recv(min(Messenger.MSG_LEN - len(msg), Messenger.MSG_LEN))
-            if chunk == b'':
-                raise RuntimeError("Socket disconnected")
-            msg = msg + chunk
-        return msg
-
-    def send(self, data):
-        sent_count = 0
-        while sent_count < Messenger.MSG_LEN:
-            sent = self.socket.send(data[sent_count:])
-            if sent == 0:
-                raise RuntimeError("Socket disconnected")
-            sent_count = sent_count + sent
+    def get_socket(self):
+        return self.socket
 
     def get_player(self):
         return self.player
@@ -88,23 +74,25 @@ class Connection (threading.Thread):
         return response
 
     def handle_login_logout(self, message):
-        if message["sub_operation"] == 0:
+        if message["sub_operation"] == 0: # login
             if self.player != None:
                 raise Exception("Already logged in")
             if len(message["name"]) > 0:
                 if self.info_container.find_player_by_name(message["name"]) is not None:
                     raise Exception("Player with this name already logged in")
 
-                self.player = Player(message["name"])
+                self.player = Player(message["name"], self.socket)
+                self.send_players_list()
 
                 return "Logged in"
-        elif message["sub_operation"] == 1:
+        elif message["sub_operation"] == 1: # logout 
             # remove from games
             game = self.info_container.find_player_game(self.player)
             if game == None:
                 raise Exception("Player not in game")
 
             game.remove_player(self.player)
+            self.check_win_condition(user_game)
             self.info_container.remove_game(game)
 
             self.delete_self = True #exit request loop
@@ -118,6 +106,7 @@ class Connection (threading.Thread):
 
             game = Game(self.player, None, message["name"])
             self.info_container.add_game(game)
+            self.send_games_list()
 
             return "Created"
         elif message["sub_operation"] == 1: # join game
@@ -130,6 +119,8 @@ class Connection (threading.Thread):
                 raise Exception("Game does not exist")
 
             game.add_player(self.player)
+            self.send_game_board(game)
+            self.send_games_list()
 
             return "Joined"
         elif message["sub_operation"] == 2: # leave game
@@ -138,6 +129,7 @@ class Connection (threading.Thread):
                 raise Exception("Player not in game")
 
             game.remove_player(self.player)
+            self.check_win_condition(user_game)
             self.info_container.remove_game(game)
 
         else:
@@ -149,6 +141,8 @@ class Connection (threading.Thread):
             if user_game != None:
                 user_game.make_move(self.player, message["posX"], message["posY"])
 
+                self.send_game_board(user_game)
+                self.check_win_condition(user_game)
                 return "Moved"
             else:
                 raise Exception("Player not in game")
@@ -162,3 +156,67 @@ class Connection (threading.Thread):
             return self.info_container.get_players_info()
         else:
             raise Exception("Wrong sub operation")
+
+    def check_and_send_win_condition(self, game):
+        result = game.check_winning_condition()
+
+        if result == int(-1):
+            return 0
+        else: # send win info
+            msg = {}
+            msg["operation"] = 1,
+            msg["sub_operation"] = 0,
+            msg["winner"] = game.get_winner()
+            msg["loser"] = game.get_loser()
+
+            encoded_msg = Messenger.encode_data(msg)
+            players = game.get_players()
+
+            for p in players:
+                if p is not None:
+                    Messenger.send(encoded_msg, p.get_socket())
+                    print("Score sent: ", msg)
+
+    def send_game_board(self, game):
+        board = game.get_board()
+
+        msg = {}
+        msg["operation"] = 2
+        msg["sub_operation"] = 0
+        msg["board"] = board
+
+        encoded_msg = Messenger.encode_data(msg)
+        players = game.get_players()
+
+        for p in players:
+            if p is not None:
+                Messenger.send(encoded_msg, p.get_socket())
+                print("Board sent: ", msg)
+
+    def send_games_list(self)
+        games = self.info_container.get_games_info()
+        msg = {}
+        msg["operation"] = 3
+        msg["sub_operation"] = 0
+        msg["games"] = games
+
+        encoded_msg = Messenger.encode_data(msg)
+        connections = game.get_connections()
+
+        for c in connections:
+            Messenger.send(encoded_msg, c.get_socket())
+            print("Games list sent: ", msg)
+
+    def send_players_list(self)
+        games = self.info_container.get_players_info()
+        msg = {}
+        msg["operation"] = 3
+        msg["sub_operation"] = 1
+        msg["players"] = players
+
+        encoded_msg = Messenger.encode_data(msg)
+        connections = game.get_connections()
+
+        for c in connections:
+            Messenger.send(encoded_msg, c.get_socket())
+            print("Players list sent: ", msg)

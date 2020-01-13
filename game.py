@@ -19,10 +19,20 @@ class Game:
         self.id = result[0][0]
 
     def __del__(self):
-        self.save_game_score()
+        if self.winner != None:
+            self.save_game_score()
+
+    def get_winner(self):
+        return self.winner
+    
+    def get_loser(self):
+        return self.loser
 
     def get_id(self):
         return self.id
+
+    def get_board(self):
+        return self.board
 
     def save_game_score(self):
         db.query('UPDATE games SET winnerId = {} WHERE id = "{}"'.format(self.winner.get_id(), self.id))
@@ -77,7 +87,7 @@ class Game:
     '''
     def check_winning_condition(self):
         if self.is_finished:
-            return self.players.index(self.winner)
+            return self.winner
 
         for i in range(3):
             if self.board[0][i] == -1:
@@ -98,7 +108,15 @@ class Game:
             self.winner = self.players[self.board[0][2]]
 
         if int(-1) not in self.board:
-            return 2 # draw
+            return -2 # draw
+
+        if self.winner != None:
+            if self.players[0] == self.winner:
+                self.loser = self.players[1]
+            else:
+                self.loser = self.players[0]
+            self.is_finished = True
+            return self.winner
 
         return -1
     
@@ -118,7 +136,7 @@ class Game:
         if self.turn != self.players.index(player):
             raise Exception("Not your turn")
 
-        self.board[positionY][positionX] = self.players.index(player)
+        self.board[positionY][positionX] = player.get_id()
         self.turn = int(not self.turn)
         self.print_board()
 

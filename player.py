@@ -1,11 +1,12 @@
 from db_connection import Db_connection as db
 
 class Player:
-    def __init__(self, name):
+    def __init__(self, name, _socket):
         self.name = name
         self.status = "Online"
         self.mmr = int(1000)
         self.id = 0
+        self.socket = _socket
         
         self.load_info()
 
@@ -38,3 +39,6 @@ class Player:
 
     def get_name(self):
         return self.name
+
+    def get_socket(self):
+        return self.socket

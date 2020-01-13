@@ -155,7 +155,17 @@ Games result: (po zakonczeniu)
 Game Board: (po tym jak zawodnik (którykolwiek) wykona ruch)
     {
         operation: 2,
-        sub_operation: 1,
+        sub_operation: 0,
         board: board (array)
     }
 
+
+
+# todo
+1 zaimplementowac listener w cliencie
+2 wysylac do clienta info o:
+    player liscie jak sie zmieni
+    game liscie jak sie zmieni
+    game resultach jak sie zmieni
+    game board jak po kazdym ruchu
+    
