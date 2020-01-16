@@ -193,7 +193,7 @@ class Connection (threading.Thread):
                 Messenger.send(encoded_msg, p.get_socket())
                 print("Board sent: ", msg)
 
-    def send_games_list(self)
+    def send_games_list(self):
         games = self.info_container.get_games_info()
         msg = {}
         msg["operation"] = 3
@@ -201,21 +201,21 @@ class Connection (threading.Thread):
         msg["games"] = games
 
         encoded_msg = Messenger.encode_data(msg)
-        connections = game.get_connections()
+        connections = self.info_container.get_connections()
 
         for c in connections:
             Messenger.send(encoded_msg, c.get_socket())
             print("Games list sent: ", msg)
 
-    def send_players_list(self)
-        games = self.info_container.get_players_info()
+    def send_players_list(self):
+        players = self.info_container.get_players_info()
         msg = {}
         msg["operation"] = 3
         msg["sub_operation"] = 1
         msg["players"] = players
 
         encoded_msg = Messenger.encode_data(msg)
-        connections = game.get_connections()
+        connections = self.info_container.get_connections()
 
         for c in connections:
             Messenger.send(encoded_msg, c.get_socket())
