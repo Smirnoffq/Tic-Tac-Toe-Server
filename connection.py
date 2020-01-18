@@ -23,7 +23,7 @@ class Connection (threading.Thread):
                 message = Messenger.receive(self.socket)
                 message = Messenger.decode_data(message)
                 print("New message: ", message)
-            except RuntimeError as re:
+            except Exception as re:
                 print(re)
                 self.delete_self = True
                 break # user disconnected
@@ -57,6 +57,7 @@ class Connection (threading.Thread):
         response = {}
         response["operation"] = message["operation"]
         response["sub_operation"] = message["sub_operation"]
+        response["isResponse"] = True
 
         try:
             if self.player == None and message["operation"] != 0:
