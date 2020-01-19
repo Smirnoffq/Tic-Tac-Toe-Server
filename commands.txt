@@ -159,13 +159,10 @@ Game Board: (po tym jak zawodnik (którykolwiek) wykona ruch)
         board: board (array)
     }
 
+Game players info:
+{
+    operation: 0
+    sub_op: 0
+    message: info (array)
+}
 
-
-# todo
-1 zaimplementowac listener w cliencie
-2 wysylac do clienta info o:
-    player liscie jak sie zmieni
-    game liscie jak sie zmieni
-    game resultach jak sie zmieni
-    game board jak po kazdym ruchu
-    

@@ -13,6 +13,7 @@ class InformationContainer:
         for game in self.games:
             info = {}
             info["id"] = game.get_id()
+            info["name"] = game.get_name()
             info["players_count"] = 0
 
             for player in game.get_players():

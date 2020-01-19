@@ -32,7 +32,7 @@ class Messenger:
             
             chunk = socket.recv(min(Messenger.MSG_LEN - len(msg), Messenger.MSG_LEN))
             if chunk == b'':
-                raise RuntimeError("Socket disconnected")
+                raise Exception("Socket disconnected")
             msg = msg + chunk
         return msg
 
@@ -42,5 +42,5 @@ class Messenger:
         while sent_count < Messenger.MSG_LEN:
             sent = socket.send(data[sent_count:])
             if sent == 0:
-                raise RuntimeError("Socket disconnected")
+                raise Exception("Socket disconnected")
             sent_count = sent_count + sent

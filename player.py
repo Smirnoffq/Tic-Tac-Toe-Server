@@ -20,7 +20,8 @@ class Player:
             self.id = int(result[0][0]) # bo results to lista
             self.mmr = int(result[0][1]) # bo results to lista
         else:
-            db.query('INSERT INTO players (name) VALUES ("{}")'.format(self.name.lower()))
+            result = db.query('INSERT INTO players (name) VALUES ("{}")'.format(self.name.lower()))
+            self.id = result[0][0]
 
     def set_mmr(self, mmr):
         self.mmr = int(mmr)
