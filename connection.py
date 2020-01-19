@@ -5,6 +5,7 @@ from game import Game
 from player import Player
 from messenger import Messenger
 
+
 class Connection (threading.Thread):
 
     def __init__(self, _socket, _info_container):
@@ -26,7 +27,7 @@ class Connection (threading.Thread):
             except Exception as re:
                 print(re)
                 self.delete_self = True
-                break # user disconnected
+                break  # user disconnected
 
             try:
                 response = self.handle_message(message)
@@ -38,10 +39,10 @@ class Connection (threading.Thread):
             Messenger.send(response_encoded, self.socket)
             print("Response sent: ", response)
 
-        self.__del__() # call destructor
+        self.__del__()  # call destructor
 
     def __del__(self):
-        self.info_container.remove_connection(self) # remove from clients list
+        self.info_container.remove_connection(self)  # remove from clients list
         self.send_players_list()
 
     def get_socket(self):
@@ -51,7 +52,7 @@ class Connection (threading.Thread):
         return self.player
 
     def handle_message(self, message):
-        handlers = [self.handle_login_logout, self.handle_game_managment, 
+        handlers = [self.handle_login_logout, self.handle_game_managment,
                     self.handle_game_move, self.handle_lists]
         result = False
         response = {}
@@ -71,11 +72,11 @@ class Connection (threading.Thread):
         if result != False:
             response["status"] = True
             response["message"] = result
-        
+
         return response
 
     def handle_login_logout(self, message):
-        if message["sub_operation"] == 0: # login
+        if message["sub_operation"] == 0:  # login
             if self.player != None:
                 raise Exception("Already logged in")
             if len(message["name"]) > 0:
@@ -86,31 +87,32 @@ class Connection (threading.Thread):
                 self.send_players_list()
 
                 return "Logged in"
-        elif message["sub_operation"] == 1: # logout 
+        elif message["sub_operation"] == 1:  # logout
             # remove from games
             game = self.info_container.find_player_game(self.player)
             if game == None:
                 raise Exception("Player not in game")
 
             game.remove_player(self.player)
-            self.check_win_condition(user_game)
+            self.check_and_send_win_condition(user_game)
             self.info_container.remove_game(game)
 
-            self.delete_self = True #exit request loop
+            self.delete_self = True  # exit request loop
         else:
             raise Exception("Wrong sub operation")
 
     def handle_game_managment(self, message):
-        if message["sub_operation"] == 0: # create game
+        if message["sub_operation"] == 0:  # create game
             if self.info_container.find_player_game(self.player) != None:
                 raise Exception("Player already in game")
 
             game = Game(self.player, None, message["name"])
             self.info_container.add_game(game)
+            self.send_game_players_info(game)
             self.send_games_list()
 
             return "Created"
-        elif message["sub_operation"] == 1: # join game
+        elif message["sub_operation"] == 1:  # join game
             if self.info_container.find_player_game(self.player) != None:
                 raise Exception("Player already in game")
 
@@ -120,17 +122,18 @@ class Connection (threading.Thread):
                 raise Exception("Game does not exist")
 
             game.add_player(self.player)
+            self.send_game_players_info(game)
             self.send_game_board(game)
             self.send_games_list()
 
             return "Joined"
-        elif message["sub_operation"] == 2: # leave game
+        elif message["sub_operation"] == 2:  # leave game
             game = self.info_container.find_player_game(self.player)
             if game == None:
                 raise Exception("Player not in game")
 
             game.remove_player(self.player)
-            self.check_win_condition(user_game)
+            self.check_and_send_win_condition(user_game)
             self.info_container.remove_game(game)
 
         else:
@@ -140,10 +143,17 @@ class Connection (threading.Thread):
         if message["sub_operation"] == 0:
             user_game = self.info_container.find_player_game(self.player)
             if user_game != None:
-                user_game.make_move(self.player, message["posX"], message["posY"])
+                user_game.make_move(
+                    self.player, message["posX"], message["posY"])
 
                 self.send_game_board(user_game)
-                self.check_win_condition(user_game)
+                win = self.check_and_send_win_condition(user_game)
+
+                if win:
+                    print("delete game")
+                    user_game.save_game_score()
+                    self.info_container.remove_game(user_game)
+
                 return "Moved"
             else:
                 raise Exception("Player not in game")
@@ -163,20 +173,32 @@ class Connection (threading.Thread):
 
         if result == int(-1):
             return 0
-        else: # send win info
+        else:  # send win info
+            info = {}
+            info["winner"] = game.get_winner()
+            info["loser"] = game.get_loser()
             msg = {}
-            msg["operation"] = 1,
-            msg["sub_operation"] = 0,
-            msg["winner"] = game.get_winner()
-            msg["loser"] = game.get_loser()
-
-            encoded_msg = Messenger.encode_data(msg)
+            msg["operation"] = 1
+            msg["sub_operation"] = 0
+            
             players = game.get_players()
 
             for p in players:
                 if p is not None:
+                    if result == int(-2):
+                        info["message"] = "Draw!"
+                    elif p.get_id() == game.get_winner():
+                        info["message"] = "You won!"
+                    elif p.get_id() == game.get_loser():
+                        info["message"] = "You lost!"
+                    msg["message"] = info
+
+                    encoded_msg = Messenger.encode_data(msg)
+                    
                     Messenger.send(encoded_msg, p.get_socket())
                     print("Score sent: ", msg)
+
+            return 1
 
     def send_game_board(self, game):
         board = game.get_board()
@@ -184,7 +206,7 @@ class Connection (threading.Thread):
         msg = {}
         msg["operation"] = 2
         msg["sub_operation"] = 0
-        msg["board"] = board
+        msg["message"] = board
 
         encoded_msg = Messenger.encode_data(msg)
         players = game.get_players()
@@ -199,7 +221,7 @@ class Connection (threading.Thread):
         msg = {}
         msg["operation"] = 3
         msg["sub_operation"] = 0
-        msg["games"] = games
+        msg["message"] = games
 
         encoded_msg = Messenger.encode_data(msg)
         connections = self.info_container.get_connections()
@@ -213,7 +235,7 @@ class Connection (threading.Thread):
         msg = {}
         msg["operation"] = 3
         msg["sub_operation"] = 1
-        msg["players"] = players
+        msg["message"] = players
 
         encoded_msg = Messenger.encode_data(msg)
         connections = self.info_container.get_connections()
@@ -221,3 +243,18 @@ class Connection (threading.Thread):
         for c in connections:
             Messenger.send(encoded_msg, c.get_socket())
             print("Players list sent: ", msg)
+
+    def send_game_players_info(self, game):
+        pi = game.get_players_info()
+        msg = {}
+        msg["operation"] = 0
+        msg["sub_operation"] = 0
+        msg["message"] = pi
+
+        encoded_msg = Messenger.encode_data(msg)
+        players = game.get_players()
+
+        for p in players:
+            if p is not None:
+                Messenger.send(encoded_msg, p.get_socket())
+                print("Board sent: ", msg)
